@@ -1,0 +1,8 @@
+body {
+  height: 100vh;
+  background-color: $c1;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  position: relative;
+}
