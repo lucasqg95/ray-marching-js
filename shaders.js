@@ -33,7 +33,7 @@ export const fragment = glsl`
   }
 
   vec2 map(vec3 pos) {
-    float deformation = 0.0007 * distance(pos, vec3(0.0, vec2(u_mouse.x, 0.0)));
+    float deformation = 0.00007 * distance(pos, vec3(0.0, vec2(u_mouse.x, 0.0)));
     float normalizedHeight = (u_mouse.y + 1.0) / 2.0;
     float maxBoxHeight = 0.004;
     float s = 0.25 + deformation;
