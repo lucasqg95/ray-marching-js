@@ -18,20 +18,24 @@ export const fragment = glsl`
 
   varying vec2 vUv;
 
+  // retorna a união de duas formas suavizando-as
   float fOpUnionRound(float a, float b, float r) {
     vec2 u = max(vec2(r - a,r - b), vec2(0));
     return max(r, min (a, b)) - length(u);
   }
 
+  // plano da scena
   float sdPlane(vec3 p) {
     return p.y;
   }
   
+  // caixas da scena
   float sdBox(vec3 p, vec3 b) {
     vec3 d = abs(p) - b;
     return length(max(d, 0.0)) - 0.1;
   }
 
+  // calcula a distância entre a posição dos elementos e a cena renderizada.
   vec2 map(vec3 pos) {
     float deformation = 0.00007 * distance(pos, vec3(0.0, vec2(u_mouse.x, 0.0)));
     float normalizedHeight = (u_mouse.y + 1.0) / 2.0;
@@ -54,6 +58,7 @@ export const fragment = glsl`
     return res;
   }
 
+  // funde um raio a partir da posição da câmera (ro) na direção do vetor direção (rd) e retorna a posição em que o raio colide com um objeto da cena, se houver.
   vec2 castRay(vec3 ro, vec3 rd) {
     float tmin = 1.0;
     float tmax = 20.0;
@@ -80,24 +85,13 @@ export const fragment = glsl`
     if( t>tmax ) m=-1.0;
     return vec2( t, m );
   }
-
-  float softshadow(vec3 ro, vec3 rd, float mint, float tmax) {
-    float res = 1.0;
-    float t = mint;
-    for(int i=0; i<16; i++) {
-      float h = map( ro + rd*t ).x;
-      res = min( res, 8.0*h/t );
-      t += clamp( h, 0.02, 0.10 );
-      if( h<0.001 || t>tmax ) break;
-    }
-    return clamp( res, 0.0, 1.0 );
-  }
-
+  // vetor normal de um ponto na superfície da cena
   vec3 calcNormal(vec3 pos ) {
     vec2 e = vec2(1.0,-1.0)*0.5773*0.0005;
     return normalize( e.xyy*map( pos + e.xyy ).x + e.yyx*map( pos + e.yyx ).x + e.yxy*map( pos + e.yxy ).x + e.xxx*map( pos + e.xxx ).x );
   }
 
+  //oclusão ambiente de um ponto na cena, com base na distância entre os objetos na cena e a posição da câmera.
   float calcAO(vec3 pos, vec3 nor) {
     float occ = 0.0;
     float sca = 1.0;
@@ -111,10 +105,12 @@ export const fragment = glsl`
     return clamp( 1.0 - 3.0*occ, 0.0, 1.0 );
   }
 
+  // cores que são aplicadas na scena
   vec3 palette(float t) {
     return vec3(0.5)+vec3(0.5)*cos(6.28318*(vec3(2.,1.,0.)*t+vec3(0.5,0.2,0.25)) );
   }
 
+  //recebe um ponto de origem (ro) e um vetor de direção (rd) que representam um raio que será traçado na cena virtual
   vec3 render(vec3 ro, vec3 rd ) { 
     vec3 col = vec3(0.7, 0.9, 1.0) + rd.y*0.8;
     vec2 res = castRay(ro,rd);
@@ -125,10 +121,9 @@ export const fragment = glsl`
       vec3 nor = calcNormal( pos );
       vec3 ref = reflect( rd, nor );
 
-      // material
       col = palette(fract(0.05*u_time));
 
-      // lighting
+      // calculos da luz
       float occ = calcAO( pos, nor );
       vec3  lig = normalize( vec3(-0.4, 0.7, -0.6) );
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0 );
@@ -175,17 +170,16 @@ export const fragment = glsl`
       // camera
       vec3 ro = vec3( -0.5+4.0*cos(0.3*u_time), 4.0, 2.5+4.0*sin(0.3*u_time) );
       vec3 ta = vec3( -0.5, -0.4, 0.5 );
-      // camera-to-world transformation
 
       float scale = zoomFactor(u_time);
       mat3 ca = setCamera(ro, ta, 0.0, scale);
+
       // ray direction
       vec3 rd = ca * normalize( vec3(p.xy,2.0) );
 
       // render
       vec3 col = render( ro, rd );
 
-      // gamma
       col = pow( col, vec3(0.4545) );
 
       tot += col;
